@@ -813,7 +813,7 @@ export default function PromptGrid() {
                   const result = getResult(model.id, prompt.id);
                   return (
                     <td key={model.id} className="p-4 align-top">
-                      <div className="w-full h-[300px] bg-gray-100 dark:bg-gray-900 rounded-md flex items-center justify-center overflow-hidden">
+                      <div className="w-full h-[300px] bg-gray-100 dark:bg-gray-900 rounded-md flex items-center justify-center overflow-hidden p-2">
                         {!result && (
                           <div className="text-gray-400 text-sm flex flex-col items-center justify-center gap-3">
                             <span>Click &quot;Generate&quot; to create images</span>
@@ -857,7 +857,7 @@ export default function PromptGrid() {
                               src={result.imageUrl}
                               alt={`Generated image for ${prompt.text} using ${model.name}`}
                               fill
-                              className="object-cover cursor-pointer"
+                              className="object-contain cursor-pointer"
                               onClick={() => openImagePopup(result.imageUrl!, prompt.text, model.name)}
                             />
                             <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity bg-black/30 flex items-center justify-center gap-2">
