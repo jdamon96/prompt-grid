@@ -2,8 +2,11 @@
 
 import { useState } from "react";
 import Image from "next/image";
-import { Plus, Settings, X, Trash2, AlertCircle, Info, ZoomIn, Download, Lock } from "lucide-react";
+import { Plus, Settings, X, Trash2, AlertCircle, Info, ZoomIn, Download, Lock, Github } from "lucide-react";
 import { cn } from "@/lib/utils";
+
+// Define constants at the top, after imports but before component definition
+const GITHUB_REPO_URL = "https://github.com/yourusername/prompt-grid";
 
 // Define types for our grid data
 type Model = {
@@ -229,6 +232,19 @@ export default function PromptGrid() {
 
   // Close config modal
   const closeModelConfig = () => {
+    // If there was a model being configured, clear error states for it
+    if (configModelId) {
+      // Reset error states for cells that had configuration-related errors
+      setResults(prev => prev.map(result => 
+        result.modelId === configModelId && result.status === 'error' && 
+        (result.error?.includes('API key') || 
+         result.error?.includes('endpoint') || 
+         (result.error?.includes('DALL-E 3') && result.error?.includes('n=1')))
+          ? { ...result, status: 'idle', error: undefined, imageUrl: null }
+          : result
+      ));
+    }
+    
     setConfigModelId(null);
   };
 
@@ -241,6 +257,16 @@ export default function PromptGrid() {
     setModels(models.map(model => 
       model.id === id ? { ...model, [field]: value } : model
     ));
+    
+    // Clear error states for cells using this model when API key or endpoint is updated
+    if (field === 'apiKey' || field === 'apiEndpoint') {
+      setResults(prev => prev.map(result => 
+        result.modelId === id && (result.status === 'error') && 
+        (result.error?.includes('API key') || result.error?.includes('endpoint'))
+          ? { ...result, status: 'idle', error: undefined, imageUrl: null }
+          : result
+      ));
+    }
   };
 
   // Check if a parameter is locked
@@ -269,6 +295,17 @@ export default function PromptGrid() {
         } 
       } : model
     ));
+    
+    // Clear error states for this model when specific parameters are fixed
+    if (model?.parameters.model === 'dall-e-3' && parameter === 'n' && value === 1) {
+      // Clear DALL-E 3 n=1 errors
+      setResults(prev => prev.map(result => 
+        result.modelId === id && result.status === 'error' && 
+        result.error?.includes('DALL-E 3') && result.error?.includes('n=1')
+          ? { ...result, status: 'idle', error: undefined, imageUrl: null }
+          : result
+      ));
+    }
   };
 
   // Generate images for all combinations
@@ -539,8 +576,17 @@ export default function PromptGrid() {
       <div className="flex justify-between gap-2">
       <div className="flex flex-col gap-2">
       <h1 className="text-2xl font-bold">Prompt Grid</h1>
-      <p className="text-gray-600 dark:text-gray-400">
+      <p className="text-gray-600 dark:text-gray-400 flex items-center gap-2">
         Compare image generation models with different prompts
+        <a 
+          href={GITHUB_REPO_URL} 
+          target="_blank" 
+          rel="noopener noreferrer"
+          className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 transition-colors"
+        >
+          <Github size={12} />
+          <span>Open Source</span>
+        </a>
       </p>
       </div>
       <div className="flex justify-center">
@@ -566,8 +612,17 @@ export default function PromptGrid() {
           <div>
             <h3 className="font-medium text-yellow-800 dark:text-yellow-200">Secure API Key Handling</h3>
             <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-              Your API keys are sent securely to our proxy service and are never stored on our servers.
-              They are only used for the specific image generation request and then discarded.
+              Your API keys are sent securely to a local API route and are never stored on our servers.
+              They remain in your browser only for the duration of your session and are only used for 
+              the specific image generation requests. You can verify this by checking the 
+              <a 
+                href={GITHUB_REPO_URL} 
+                target="_blank"
+                rel="noopener noreferrer"
+                className="underline hover:text-yellow-800 dark:hover:text-yellow-100 ml-1"
+              >
+                open source code
+              </a>.
             </p>
           </div>
         </div>
@@ -701,8 +756,19 @@ export default function PromptGrid() {
                           </div>
                         )}
                         {result?.status === "error" && (
-                          <div className="text-red-500 text-sm p-4 text-center">
-                            {result.error || "Error generating image"}
+                          <div className="text-red-500 text-sm p-4 text-center flex flex-col items-center gap-3">
+                            <span>{result.error || "Error generating image"}</span>
+                            <button
+                              onClick={() => generateSingleImage(model, prompt)}
+                              className={cn(
+                                "px-3 py-1.5 rounded-md text-xs font-medium",
+                                "bg-red-100 text-red-700 hover:bg-red-200",
+                                "dark:bg-red-900/30 dark:text-red-300 dark:hover:bg-red-800/50",
+                                "transition-colors"
+                              )}
+                            >
+                              Retry
+                            </button>
                           </div>
                         )}
                         {result?.status === "success" && result.imageUrl && (
