@@ -4,6 +4,7 @@ interface FormattedResponse {
   success: boolean;
   status: number;
   imageUrl?: string | null;
+  error?: string;
 }
 
 interface RequestHeaders {
@@ -24,7 +25,7 @@ interface OpenAIImageRequestBody {
   moderation?: string;
   output_format?: string;
   output_compression?: number;
-  [key: string]: any;
+  [key: string]: unknown;
 }
 
 export async function POST(req: NextRequest) {
@@ -57,7 +58,7 @@ export async function POST(req: NextRequest) {
     console.log(`Processing request for model: ${modelName}, endpoint: ${apiEndpoint}`);
     
     // Handle different API formats based on the endpoint
-    let requestBody: any;
+    let requestBody: Record<string, unknown>;
     let headers: RequestHeaders = {
       'Content-Type': 'application/json',
       'Authorization': `Bearer ${apiKey}`
@@ -68,7 +69,7 @@ export async function POST(req: NextRequest) {
       // OpenAI API format (works for DALL-E 2, DALL-E 3, and GPT-image-1)
       const model = parameters.model || 'dall-e-2';
       const isGptImage = model === 'gpt-image-1';
-      const isDallE2 = model === 'dall-e-2';
+      // const isDallE2 = model === 'dall-e-2'; // Commented out since it's unused
       const isDallE3 = model === 'dall-e-3';
       
       // Start with common parameters
@@ -189,14 +190,14 @@ export async function POST(req: NextRequest) {
     let data;
     try {
       data = JSON.parse(responseText);
-    } catch (parseError: any) {
+    } catch (parseError: unknown) {
       console.error('Failed to parse JSON response:', parseError);
       console.error('Response status:', response.status, response.statusText);
       console.error('Response headers:', Object.fromEntries([...response.headers.entries()]));
       console.error('Raw response body:', responseText);
       
       return NextResponse.json(
-        { error: `API returned invalid JSON: ${parseError.message}. Raw response: ${responseText.substring(0, 100)}...` },
+        { error: `API returned invalid JSON: ${parseError instanceof Error ? parseError.message : 'Unknown parsing error'}. Raw response: ${responseText.substring(0, 100)}...` },
         { status: 500 }
       );
     }
@@ -239,7 +240,7 @@ export async function POST(req: NextRequest) {
     }
     
     // Format the response based on the API
-    let formattedResponse: FormattedResponse = { 
+    const formattedResponse: FormattedResponse = { 
       success: true,
       status: response.status
     };
@@ -342,7 +343,7 @@ export async function POST(req: NextRequest) {
     }
     
     return NextResponse.json(formattedResponse);
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Proxy API error:', error);
     
     // Provide more detailed error information

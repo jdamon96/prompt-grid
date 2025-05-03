@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
 import Image from "next/image";
 import { Plus, Settings, X, Trash2, AlertCircle, Info, ZoomIn, Download, Lock, Github, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
@@ -19,9 +19,25 @@ type Model = {
     temperature?: number;
     maxTokens?: number;
     model?: string;
+    size?: string;
+    quality?: string;
+    style?: string;
+    n?: number;
+    response_format?: string;
+    background?: string;
+    moderation?: string;
+    output_format?: string;
+    output_compression?: number;
+    numberOfImages?: number;
+    aspectRatio?: string;
+    personGeneration?: string;
+    config?: {
+      responseModalities?: string[];
+      [key: string]: unknown;
+    };
     lockedParams?: string[];  // New field to track locked parameters
     // Add other API-specific parameters
-    [key: string]: any;
+    [key: string]: unknown;
   };
 };
 
@@ -393,11 +409,11 @@ export default function PromptGrid() {
           } else {
             throw new Error(data.error || 'Failed to generate image');
           }
-        } catch (error: any) {
+        } catch (error: unknown) {
           console.error(`Error generating image for ${model.name}:`, error);
           setResults(prev => prev.map(result => 
             result.modelId === model.id && result.promptId === prompt.id
-              ? { ...result, status: "error", error: error.message || 'An unexpected error occurred' }
+              ? { ...result, status: "error", error: error instanceof Error ? error.message : 'An unexpected error occurred' }
               : result
           ));
         }
@@ -614,11 +630,11 @@ export default function PromptGrid() {
       } else {
         throw new Error(data.error || 'Failed to generate image');
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error(`Error generating image for ${model.name}:`, error);
       setResults(prev => prev.map(result => 
         result.modelId === model.id && result.promptId === prompt.id
-          ? { ...result, status: "error", error: error.message || 'An unexpected error occurred' }
+          ? { ...result, status: "error", error: error instanceof Error ? error.message : 'An unexpected error occurred' }
           : result
       ));
     }
@@ -796,7 +812,7 @@ export default function PromptGrid() {
                       <div className="w-full h-[300px] bg-gray-100 dark:bg-gray-900 rounded-md flex items-center justify-center overflow-hidden">
                         {!result && (
                           <div className="text-gray-400 text-sm flex flex-col items-center justify-center gap-3">
-                            <span>Click "Generate" to create images</span>
+                            <span>Click &quot;Generate&quot; to create images</span>
                             <button
                               onClick={() => generateSingleImage(model, prompt)}
                               className={cn(
@@ -915,10 +931,12 @@ export default function PromptGrid() {
               </div>
             </div>
             <div className="relative flex-1 min-h-[50vh] overflow-auto bg-[#f5f5f5] dark:bg-[#111] flex items-center justify-center">
-              <img
-                src={imagePopup.imageUrl}
+              <Image
+                src={imagePopup.imageUrl || ''}
                 alt={`Generated image for prompt: ${imagePopup.prompt}`}
                 className="max-w-full max-h-[calc(90vh-8rem)]"
+                width={1024}
+                height={1024}
               />
             </div>
             <div className="border-t border-gray-200 dark:border-gray-800 p-4">
@@ -949,7 +967,7 @@ export default function PromptGrid() {
             </div>
             <div className="p-6 space-y-4">
               <p className="text-gray-600 dark:text-gray-400 text-sm">
-                We'd love to hear your feedback or feature requests for Prompt Grid. Your input helps us improve!
+                We&apos;d love to hear your feedback or feature requests for Prompt Grid. Your input helps us improve!
               </p>
               <div>
                 <label htmlFor="feedback-message" className="block text-sm font-medium mb-1">
@@ -959,7 +977,7 @@ export default function PromptGrid() {
                   id="feedback-message"
                   value={feedbackModal.message}
                   onChange={(e) => updateFeedbackMessage(e.target.value)}
-                  placeholder="I'd like to suggest a new feature for Prompt Grid..."
+                  placeholder="I&apos;d like to suggest a new feature for Prompt Grid..."
                   rows={6}
                   className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-transparent focus:outline-none focus:border-black dark:focus:border-white"
                 />
@@ -1135,19 +1153,19 @@ export default function PromptGrid() {
                         <h3 className="font-medium text-blue-800 dark:text-blue-200 text-sm">About this model</h3>
                         {getModelById(configModelId)?.parameters.model === 'dall-e-2' && (
                           <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                            DALL-E 2 is OpenAI's second-generation image creation model capable of creating realistic images from text descriptions.
+                            DALL-E 2 is OpenAI&apos;s second-generation image creation model capable of creating realistic images from text descriptions.
                             It supports 256x256, 512x512, and 1024x1024 image sizes with up to 1000 character prompts.
                           </p>
                         )}
                         {getModelById(configModelId)?.parameters.model === 'dall-e-3' && (
                           <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                            DALL-E 3 is OpenAI's third-generation image creation model with improved image quality and prompt following.
+                            DALL-E 3 is OpenAI&apos;s third-generation image creation model with improved image quality and prompt following.
                             It supports 1024x1024, 1792x1024, and 1024x1792 image sizes with up to 4000 character prompts.
                           </p>
                         )}
                         {getModelById(configModelId)?.parameters.model === 'gpt-image-1' && (
                           <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                            GPT-image-1 is OpenAI's latest image model combining GPT-4's understanding with advanced image generation.
+                            GPT-image-1 is OpenAI&apos;s latest image model combining GPT-4&apos;s understanding with advanced image generation.
                             It offers better text rendering, superior composition, and supports up to 32000 character prompts.
                           </p>
                         )}
@@ -1408,13 +1426,13 @@ export default function PromptGrid() {
                         {getModelById(configModelId)?.parameters.model === 'gemini-2.0-flash-exp-image-generation' && (
                           <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
                             Gemini 2.0 Flash Experimental supports generating text and inline images together.
-                            Your API calls must include the responseModalities parameter set to ["TEXT", "IMAGE"].
+                            Your API calls must include the responseModalities parameter set to [&quot;TEXT&quot;, &quot;IMAGE&quot;].
                             All generated images include a SynthID watermark.
                           </p>
                         )}
                         {getModelById(configModelId)?.parameters.model === 'imagen-3.0-generate-002' && (
                           <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
-                            Imagen 3 is Google's highest quality text-to-image model. It can generate detailed images, 
+                            Imagen 3 is Google&apos;s highest quality text-to-image model. It can generate detailed images, 
                             understand natural language prompts, and render text more effectively than previous models.
                             All generated images include a SynthID watermark.
                           </p>
@@ -1491,7 +1509,7 @@ export default function PromptGrid() {
                           )}
                         >
                           <option value="ALLOW_ADULT">Allow Adults</option>
-                          <option value="DONT_ALLOW">Don't Allow People</option>
+                          <option value="DONT_ALLOW">Don&apos;t Allow People</option>
                         </select>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           Note: Imagen currently supports English-only prompts.
@@ -1509,7 +1527,7 @@ export default function PromptGrid() {
                           <Lock size={14} className="text-gray-400" />
                         </label>
                         <div className="bg-gray-100 dark:bg-gray-800 p-2 rounded-md text-sm">
-                          <code>["TEXT", "IMAGE"]</code>
+                          <code>[&quot;TEXT&quot;, &quot;IMAGE&quot;]</code>
                         </div>
                         <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
                           This parameter is required for Gemini image generation and cannot be modified.
