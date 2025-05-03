@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef } from "react";
 import Image from "next/image";
-import { Plus, Settings, X, Trash2, AlertCircle, Info, ZoomIn, Download, Lock, Github } from "lucide-react";
+import { Plus, Settings, X, Trash2, AlertCircle, Info, ZoomIn, Download, Lock, Github, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 // Define constants at the top, after imports but before component definition
@@ -44,6 +44,12 @@ type ImagePopup = {
   imageUrl: string | null;
   prompt: string;
   modelName: string;
+};
+
+// Define a type for the feedback modal
+type FeedbackModal = {
+  isOpen: boolean;
+  message: string;
 };
 
 // Predefined model configurations
@@ -151,6 +157,12 @@ export default function PromptGrid() {
     imageUrl: null,
     prompt: "",
     modelName: ""
+  });
+  
+  // State for the feedback modal
+  const [feedbackModal, setFeedbackModal] = useState<FeedbackModal>({
+    isOpen: false,
+    message: ""
   });
 
   // Add a new model
@@ -437,6 +449,55 @@ export default function PromptGrid() {
     document.body.style.overflow = 'auto';
   };
   
+  // Function to open the feedback modal
+  const openFeedbackModal = () => {
+    setFeedbackModal({
+      ...feedbackModal,
+      isOpen: true
+    });
+    
+    // Prevent body scroll when modal is open
+    document.body.style.overflow = 'hidden';
+  };
+  
+  // Function to close the feedback modal
+  const closeFeedbackModal = () => {
+    setFeedbackModal({
+      ...feedbackModal,
+      isOpen: false
+    });
+    
+    // Restore body scroll when modal is closed
+    document.body.style.overflow = 'auto';
+  };
+  
+  // Function to update feedback message
+  const updateFeedbackMessage = (value: string) => {
+    setFeedbackModal({
+      ...feedbackModal,
+      message: value
+    });
+  };
+  
+  // Function to submit feedback
+  const submitFeedback = () => {
+    // Generate subject from the first sentence of the message
+    const firstSentence = feedbackModal.message.split(/[.!?]/)[0].trim();
+    const truncatedSentence = firstSentence.length > 50 
+      ? `${firstSentence.substring(0, 50)}...` 
+      : firstSentence;
+    const subject = `[Prompt Grid Feature Request] ${truncatedSentence}`;
+    
+    // Create a mailto link with the auto-generated subject and message
+    const mailtoLink = `mailto:jdamon96@gmail.com?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(feedbackModal.message)}`;
+    
+    // Open the mail client
+    window.open(mailtoLink, '_blank');
+    
+    // Close the modal
+    closeFeedbackModal();
+  };
+  
   // Function to download the image
   const downloadImage = (imageUrl: string, prompt: string, modelName: string) => {
     // Create an anchor element
@@ -566,36 +627,43 @@ export default function PromptGrid() {
   return (
     <div className="flex flex-col gap-6 w-full max-w-[1200px] mx-auto">
       <div className="flex justify-between gap-2">
-      <div className="flex flex-col gap-2">
-      <h1 className="text-2xl font-bold">Prompt Grid</h1>
-      <p className="text-gray-600 dark:text-gray-400 flex items-center gap-2">
-        Compare image generation models with different prompts
-        <a 
-          href={GITHUB_REPO_URL} 
-          target="_blank" 
-          rel="noopener noreferrer"
-          className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 transition-colors"
-        >
-          <Github size={12} />
-          <span>Open Source</span>
-        </a>
-      </p>
-      </div>
-      <div className="flex justify-center">
-        <button
-          onClick={generateImages}
-          disabled={isGenerating}
-          className={cn(
-            "px-6 py-3 rounded-full font-medium",
-            "bg-black text-white hover:bg-gray-800",
-            "dark:bg-white dark:text-black dark:hover:bg-gray-200",
-            "transition-colors",
-            "disabled:opacity-50 disabled:cursor-not-allowed"
-          )}
-        >
-          {isGenerating ? "Generating..." : "Generate Images"}
-        </button>
-      </div>
+        <div className="flex flex-col gap-2">
+          <h1 className="text-2xl font-bold">Prompt Grid</h1>
+          <p className="text-gray-600 dark:text-gray-400 flex items-center gap-2">
+            Compare image generation models with different prompts
+            <a 
+              href={GITHUB_REPO_URL} 
+              target="_blank" 
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 transition-colors"
+            >
+              <Github size={12} />
+              <span>Open Source</span>
+            </a>
+          </p>
+        </div>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={openFeedbackModal}
+            className="inline-flex items-center gap-1 px-3 py-2 rounded-full bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-800/50 transition-colors"
+          >
+            <MessageSquare size={16} />
+            <span className="text-sm font-medium">Feedback</span>
+          </button>
+          <button
+            onClick={generateImages}
+            disabled={isGenerating}
+            className={cn(
+              "px-6 py-3 rounded-full font-medium",
+              "bg-black text-white hover:bg-gray-800",
+              "dark:bg-white dark:text-black dark:hover:bg-gray-200",
+              "transition-colors",
+              "disabled:opacity-50 disabled:cursor-not-allowed"
+            )}
+          >
+            {isGenerating ? "Generating..." : "Generate Images"}
+          </button>
+        </div>
       </div>
       
       <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-4">
@@ -863,6 +931,65 @@ export default function PromptGrid() {
         </div>
       )}
 
+      {/* Feedback Modal */}
+      {feedbackModal.isOpen && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50" onClick={closeFeedbackModal}>
+          <div 
+            className="bg-white dark:bg-gray-900 rounded-lg shadow-lg w-full max-w-md mx-4" 
+            onClick={(e) => e.stopPropagation()}
+          >
+            <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 p-4">
+              <h3 className="font-semibold text-lg">Feedback & Feature Requests</h3>
+              <button
+                onClick={closeFeedbackModal}
+                className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                <X size={18} />
+              </button>
+            </div>
+            <div className="p-6 space-y-4">
+              <p className="text-gray-600 dark:text-gray-400 text-sm">
+                We'd love to hear your feedback or feature requests for Prompt Grid. Your input helps us improve!
+              </p>
+              <div>
+                <label htmlFor="feedback-message" className="block text-sm font-medium mb-1">
+                  Your Feedback or Feature Request
+                </label>
+                <textarea
+                  id="feedback-message"
+                  value={feedbackModal.message}
+                  onChange={(e) => updateFeedbackMessage(e.target.value)}
+                  placeholder="I'd like to suggest a new feature for Prompt Grid..."
+                  rows={6}
+                  className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-transparent focus:outline-none focus:border-black dark:focus:border-white"
+                />
+              </div>
+            </div>
+            <div className="border-t border-gray-200 dark:border-gray-800 p-4 flex justify-end gap-2">
+              <button
+                onClick={closeFeedbackModal}
+                className="px-4 py-2 rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-800"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={submitFeedback}
+                disabled={!feedbackModal.message.trim()}
+                className={cn(
+                  "px-4 py-2 rounded-md font-medium",
+                  "bg-blue-600 text-white hover:bg-blue-700",
+                  "dark:bg-blue-700 dark:hover:bg-blue-800",
+                  "transition-colors",
+                  "disabled:opacity-50 disabled:cursor-not-allowed"
+                )}
+              >
+                Send Feedback
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+      
       {/* Model Configuration Modal */}
       {configModelId && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
