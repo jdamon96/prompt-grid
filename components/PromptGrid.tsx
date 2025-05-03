@@ -6,7 +6,7 @@ import { Plus, Settings, X, Trash2, AlertCircle, Info, ZoomIn, Download, Lock, G
 import { cn } from "@/lib/utils";
 
 // Define constants at the top, after imports but before component definition
-const GITHUB_REPO_URL = "https://github.com/yourusername/prompt-grid";
+const GITHUB_REPO_URL = "https://github.com/jdamon96/prompt-grid";
 
 // Define types for our grid data
 type Model = {
