@@ -131,14 +131,17 @@ export async function POST(req: NextRequest) {
         'x-goog-api-key': apiKey
       };
       
+      // Using format from working curl example
       requestBody = {
         contents: [{ parts: [{ text: prompt }] }],
-        config: {
-          responseModalities: ["TEXT", "IMAGE"],
-          ...parameters.config
+        generationConfig: {
+          responseModalities: ["TEXT", "IMAGE"]
         },
         model: parameters.model || "gemini-2.0-flash-exp-image-generation"
       };
+      
+      // Log the exact request being sent
+      console.log('Gemini request body:', JSON.stringify(requestBody));
     } else if (apiEndpoint.includes('generativelanguage.googleapis.com') && apiEndpoint.includes('predict') && parameters.model?.includes('imagen')) {
       // Google Imagen 3 API - using correct predict endpoint format
       headers = {
@@ -275,6 +278,9 @@ export async function POST(req: NextRequest) {
         : null;
     } else if (apiEndpoint.includes('generativelanguage.googleapis.com') && apiEndpoint.includes('generateContent')) {
       // Google Gemini response format
+      // Log the full response structure for debugging
+      console.log('Full Gemini response:', JSON.stringify(data).substring(0, 1000));
+      
       // Find the image part in the response
       const parts = data.candidates?.[0]?.content?.parts || [];
       for (const part of parts) {

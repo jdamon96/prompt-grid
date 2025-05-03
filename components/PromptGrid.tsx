@@ -35,6 +35,10 @@ type Model = {
       responseModalities?: string[];
       [key: string]: unknown;
     };
+    generationConfig?: {
+      responseModalities?: string[];
+      [key: string]: unknown;
+    };
     lockedParams?: string[];  // New field to track locked parameters
     // Add other API-specific parameters
     [key: string]: unknown;
@@ -118,15 +122,15 @@ const MODEL_PRESETS = {
   },
   gemini: {
     name: "Google Gemini",
-    apiEndpoint: "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-exp-image-generation:generateContent",
+    apiEndpoint: "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash-exp-image-generation:generateContent",
     apiKey: "",
     isPreset: true,
     parameters: {
       model: "gemini-2.0-flash-exp-image-generation",
-      config: {
+      generationConfig: {
         responseModalities: ["TEXT", "IMAGE"]
       },
-      lockedParams: ["model", "config.responseModalities"]
+      lockedParams: ["model", "generationConfig.responseModalities"]
     }
   },
   imagenThree: {
