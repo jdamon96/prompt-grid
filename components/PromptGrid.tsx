@@ -94,38 +94,30 @@ const MODEL_PRESETS = {
       lockedParams: ["model", "n"]
     }
   },
-  stabilityAi: {
-    name: "Stability AI",
-    apiEndpoint: "https://api.stability.ai/v1/generation",
-    apiKey: "",
-    isPreset: true,
-    parameters: {
-      temperature: 0.5,
-      maxTokens: 1024
-    }
-  },
   gemini: {
     name: "Google Gemini",
     apiEndpoint: "https://generativelanguage.googleapis.com/v1/models/gemini-2.0-flash-exp-image-generation:generateContent",
     apiKey: "",
     isPreset: true,
     parameters: {
+      model: "gemini-2.0-flash-exp-image-generation",
       config: {
         responseModalities: ["TEXT", "IMAGE"]
       },
-      lockedParams: []
+      lockedParams: ["model", "config.responseModalities"]
     }
   },
   imagenThree: {
     name: "Google Imagen 3",
-    apiEndpoint: "https://generativelanguage.googleapis.com/v1/models/imagen-3.0-generate-002:generateImages",
+    apiEndpoint: "https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict",
     apiKey: "",
     isPreset: true,
     parameters: {
+      model: "imagen-3.0-generate-002",
       numberOfImages: 1,
       aspectRatio: "1:1",
       personGeneration: "ALLOW_ADULT",
-      lockedParams: []
+      lockedParams: ["model", "numberOfImages"]
     }
   }
 };
@@ -135,11 +127,11 @@ export default function PromptGrid() {
   const [models, setModels] = useState<Model[]>([
     { 
       id: "model1", 
-      ...MODEL_PRESETS.dalleThree
+      ...MODEL_PRESETS.gptImageOne
     },
     { 
       id: "model2", 
-      ...MODEL_PRESETS.gptImageOne
+      ...MODEL_PRESETS.imagenThree
     },
   ]);
 
@@ -757,7 +749,7 @@ export default function PromptGrid() {
                         )}
                         {result?.status === "error" && (
                           <div className="text-red-500 text-sm p-4 text-center flex flex-col items-center gap-3">
-                            <span>{result.error || "Error generating image"}</span>
+                            <span dangerouslySetInnerHTML={{ __html: result.error || "Error generating image" }} />
                             <button
                               onClick={() => generateSingleImage(model, prompt)}
                               className={cn(
@@ -874,14 +866,29 @@ export default function PromptGrid() {
       {/* Model Configuration Modal */}
       {configModelId && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg w-full max-w-md mx-4 max-h-[90vh] overflow-y-auto">
+          <div className="bg-white dark:bg-gray-900 rounded-lg shadow-lg w-full max-w-2xl mx-4 max-h-[90vh] overflow-y-auto">
             <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-800 p-4 sticky top-0 bg-white dark:bg-gray-900">
               <h3 className="font-semibold text-lg">
                 Configure {getModelById(configModelId)?.name}
                 {getModelById(configModelId)?.parameters.model && (
-                  <span className="ml-2 text-xs font-normal px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200">
+                  <a 
+                    href={
+                      getModelById(configModelId)?.parameters.model === 'dall-e-2'
+                        ? 'https://platform.openai.com/docs/guides/image-generation?image-generation-model=dall-e-2'
+                        : getModelById(configModelId)?.parameters.model === 'dall-e-3'
+                        ? 'https://platform.openai.com/docs/guides/image-generation?image-generation-model=dall-e-3'
+                        : getModelById(configModelId)?.parameters.model === 'gpt-image-1'
+                        ? 'https://platform.openai.com/docs/guides/image-generation?image-generation-model=gpt-image-1'
+                        : getModelById(configModelId)?.parameters.model === 'imagen-3.0-generate-002'
+                        ? 'https://ai.google.dev/gemini-api/docs/imagen'
+                        : '#'
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-2 text-xs font-normal px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 hover:bg-blue-200 dark:hover:bg-blue-800 transition-colors"
+                  >
                     {getModelById(configModelId)?.parameters.model}
-                  </span>
+                  </a>
                 )}
               </h3>
               <button
@@ -933,9 +940,25 @@ export default function PromptGrid() {
                   type="password"
                   value={getModelById(configModelId)?.apiKey || ''}
                   onChange={e => updateModelConfig(configModelId, 'apiKey', e.target.value)}
-                  className="w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-transparent focus:outline-none focus:border-black dark:focus:border-white"
+                  className="w-full p-2 pr-8 border border-gray-300 dark:border-gray-700 rounded-md bg-transparent focus:outline-none focus:border-black dark:focus:border-white"
                   placeholder="sk-xxxxxxxxxxxx"
                 />
+                <div className="mt-1">
+                  <a 
+                    href={
+                      getModelById(configModelId)?.apiEndpoint.includes('openai.com')
+                        ? 'https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key'
+                        : getModelById(configModelId)?.apiEndpoint.includes('generativelanguage.googleapis.com')
+                        ? 'https://ai.google.dev/gemini-api/docs/api-key'
+                        : '#'
+                    }
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-xs text-blue-600 dark:text-blue-400 hover:underline"
+                  >
+                    How to get API key
+                  </a>
+                </div>
               </div>
               
               {/* Model Parameter - show for models that have it */}
@@ -954,12 +977,12 @@ export default function PromptGrid() {
                       onChange={e => updateModelParameter(configModelId, 'model', e.target.value)}
                       disabled={isParamLocked(getModelById(configModelId), 'model')}
                       className={cn(
-                        "w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-transparent focus:outline-none focus:border-black dark:focus:border-white",
+                        "w-full p-2 pr-8 border border-gray-300 dark:border-gray-700 rounded-md bg-transparent focus:outline-none focus:border-black dark:focus:border-white",
                         isParamLocked(getModelById(configModelId), 'model') && "bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
                       )}
                     />
                     {isParamLocked(getModelById(configModelId), 'model') && (
-                      <div className="absolute inset-0 flex items-center justify-end pr-3 pointer-events-none">
+                      <div className="absolute inset-0 flex items-center justify-end pr-10 pointer-events-none">
                         <div className="text-xs px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
                           Preset
                         </div>
@@ -1018,7 +1041,7 @@ export default function PromptGrid() {
                       onChange={e => updateModelParameter(configModelId, 'size', e.target.value)}
                       disabled={isParamLocked(getModelById(configModelId), 'size')}
                       className={cn(
-                        "w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-transparent focus:outline-none focus:border-black dark:focus:border-white",
+                        "w-full p-2 pr-8 border border-gray-300 dark:border-gray-700 rounded-md bg-transparent focus:outline-none focus:border-black dark:focus:border-white",
                         isParamLocked(getModelById(configModelId), 'size') && "bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
                       )}
                     >
@@ -1065,7 +1088,7 @@ export default function PromptGrid() {
                       onChange={e => updateModelParameter(configModelId, 'quality', e.target.value)}
                       disabled={isParamLocked(getModelById(configModelId), 'quality')}
                       className={cn(
-                        "w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-transparent focus:outline-none focus:border-black dark:focus:border-white",
+                        "w-full p-2 pr-8 border border-gray-300 dark:border-gray-700 rounded-md bg-transparent focus:outline-none focus:border-black dark:focus:border-white",
                         isParamLocked(getModelById(configModelId), 'quality') && "bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
                       )}
                     >
@@ -1112,7 +1135,7 @@ export default function PromptGrid() {
                         onChange={e => updateModelParameter(configModelId, 'style', e.target.value)}
                         disabled={isParamLocked(getModelById(configModelId), 'style')}
                         className={cn(
-                          "w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-transparent focus:outline-none focus:border-black dark:focus:border-white",
+                          "w-full p-2 pr-8 border border-gray-300 dark:border-gray-700 rounded-md bg-transparent focus:outline-none focus:border-black dark:focus:border-white",
                           isParamLocked(getModelById(configModelId), 'style') && "bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
                         )}
                       >
@@ -1135,7 +1158,7 @@ export default function PromptGrid() {
                       onChange={e => updateModelParameter(configModelId, 'background', e.target.value)}
                       disabled={isParamLocked(getModelById(configModelId), 'background') || getModelById(configModelId)?.parameters.model !== 'gpt-image-1'}
                       className={cn(
-                        "w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-transparent focus:outline-none focus:border-black dark:focus:border-white",
+                        "w-full p-2 pr-8 border border-gray-300 dark:border-gray-700 rounded-md bg-transparent focus:outline-none focus:border-black dark:focus:border-white",
                         (isParamLocked(getModelById(configModelId), 'background') || getModelById(configModelId)?.parameters.model !== 'gpt-image-1') && "bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
                       )}
                     >
@@ -1163,7 +1186,7 @@ export default function PromptGrid() {
                       onChange={e => updateModelParameter(configModelId, 'output_format', e.target.value)}
                       disabled={isParamLocked(getModelById(configModelId), 'output_format') || getModelById(configModelId)?.parameters.model !== 'gpt-image-1'}
                       className={cn(
-                        "w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-transparent focus:outline-none focus:border-black dark:focus:border-white",
+                        "w-full p-2 pr-8 border border-gray-300 dark:border-gray-700 rounded-md bg-transparent focus:outline-none focus:border-black dark:focus:border-white",
                         (isParamLocked(getModelById(configModelId), 'output_format') || getModelById(configModelId)?.parameters.model !== 'gpt-image-1') && "bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
                       )}
                     >
@@ -1191,7 +1214,7 @@ export default function PromptGrid() {
                       onChange={e => updateModelParameter(configModelId, 'moderation', e.target.value)}
                       disabled={isParamLocked(getModelById(configModelId), 'moderation') || getModelById(configModelId)?.parameters.model !== 'gpt-image-1'}
                       className={cn(
-                        "w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-transparent focus:outline-none focus:border-black dark:focus:border-white",
+                        "w-full p-2 pr-8 border border-gray-300 dark:border-gray-700 rounded-md bg-transparent focus:outline-none focus:border-black dark:focus:border-white",
                         (isParamLocked(getModelById(configModelId), 'moderation') || getModelById(configModelId)?.parameters.model !== 'gpt-image-1') && "bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
                       )}
                     >
@@ -1246,85 +1269,132 @@ export default function PromptGrid() {
                 </>
               )}
               
-              {/* Google Imagen specific parameters */}
-              {getModelById(configModelId)?.apiEndpoint.includes('imagen') && (
+              {/* Google Gemini and Imagen Parameters */}
+              {getModelById(configModelId)?.apiEndpoint.includes('generativelanguage.googleapis.com') && (
                 <>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 flex items-center gap-1">
-                      Aspect Ratio
-                      {isParamLocked(getModelById(configModelId), 'aspectRatio') && (
-                        <Lock size={14} className="text-gray-400" />
-                      )}
-                    </label>
-                    <select
-                      value={getModelById(configModelId)?.parameters.aspectRatio || '1:1'}
-                      onChange={e => updateModelParameter(configModelId, 'aspectRatio', e.target.value)}
-                      disabled={isParamLocked(getModelById(configModelId), 'aspectRatio')}
-                      className={cn(
-                        "w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-transparent focus:outline-none focus:border-black dark:focus:border-white",
-                        isParamLocked(getModelById(configModelId), 'aspectRatio') && "bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
-                      )}
-                    >
-                      <option value="1:1">Square (1:1)</option>
-                      <option value="16:9">Landscape (16:9)</option>
-                      <option value="9:16">Portrait (9:16)</option>
-                      <option value="4:3">Landscape (4:3)</option>
-                      <option value="3:4">Portrait (3:4)</option>
-                    </select>
+                  {/* Add model info section */}
+                  <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-lg p-3 mb-4">
+                    <div className="flex items-start gap-3">
+                      <Info className="text-blue-500 mt-0.5" size={16} />
+                      <div>
+                        <h3 className="font-medium text-blue-800 dark:text-blue-200 text-sm">About this model</h3>
+                        {getModelById(configModelId)?.parameters.model === 'gemini-2.0-flash-exp-image-generation' && (
+                          <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                            Gemini 2.0 Flash Experimental supports generating text and inline images together.
+                            Your API calls must include the responseModalities parameter set to ["TEXT", "IMAGE"].
+                            All generated images include a SynthID watermark.
+                          </p>
+                        )}
+                        {getModelById(configModelId)?.parameters.model === 'imagen-3.0-generate-002' && (
+                          <p className="text-xs text-blue-700 dark:text-blue-300 mt-1">
+                            Imagen 3 is Google's highest quality text-to-image model. It can generate detailed images, 
+                            understand natural language prompts, and render text more effectively than previous models.
+                            All generated images include a SynthID watermark.
+                          </p>
+                        )}
+                      </div>
+                    </div>
                   </div>
-                  <div>
-                    <label className="block text-sm font-medium mb-1 flex items-center gap-1">
-                      Person Generation
-                      {isParamLocked(getModelById(configModelId), 'personGeneration') && (
-                        <Lock size={14} className="text-gray-400" />
-                      )}
-                    </label>
-                    <select
-                      value={getModelById(configModelId)?.parameters.personGeneration || 'ALLOW_ADULT'}
-                      onChange={e => updateModelParameter(configModelId, 'personGeneration', e.target.value)}
-                      disabled={isParamLocked(getModelById(configModelId), 'personGeneration')}
-                      className={cn(
-                        "w-full p-2 border border-gray-300 dark:border-gray-700 rounded-md bg-transparent focus:outline-none focus:border-black dark:focus:border-white",
-                        isParamLocked(getModelById(configModelId), 'personGeneration') && "bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
-                      )}
-                    >
-                      <option value="ALLOW_ADULT">Allow Adults</option>
-                      <option value="DONT_ALLOW">Don't Allow People</option>
-                    </select>
-                  </div>
+                  
+                  {/* Imagen 3 Parameters */}
+                  {getModelById(configModelId)?.parameters.model === 'imagen-3.0-generate-002' && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium mb-1 flex items-center gap-1">
+                          Number of Images
+                          <Lock size={14} className="text-gray-400" />
+                        </label>
+                        <div className="relative">
+                          <select
+                            value={1}
+                            disabled={true}
+                            className="w-full p-2 pr-8 border border-gray-300 dark:border-gray-700 rounded-md bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
+                          >
+                            <option value={1}>1</option>
+                          </select>
+                          <div className="absolute inset-0 flex items-center justify-end pr-10 pointer-events-none">
+                            <div className="text-xs px-1.5 py-0.5 rounded bg-gray-200 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
+                              Locked
+                            </div>
+                          </div>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Currently, only single image generation is supported in the grid.
+                        </p>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium mb-1 flex items-center gap-1">
+                          Aspect Ratio
+                          {isParamLocked(getModelById(configModelId), 'aspectRatio') && (
+                            <Lock size={14} className="text-gray-400" />
+                          )}
+                        </label>
+                        <select
+                          value={getModelById(configModelId)?.parameters.aspectRatio || '1:1'}
+                          onChange={e => updateModelParameter(configModelId, 'aspectRatio', e.target.value)}
+                          disabled={isParamLocked(getModelById(configModelId), 'aspectRatio')}
+                          className={cn(
+                            "w-full p-2 pr-8 border border-gray-300 dark:border-gray-700 rounded-md bg-transparent focus:outline-none focus:border-black dark:focus:border-white",
+                            isParamLocked(getModelById(configModelId), 'aspectRatio') && "bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
+                          )}
+                        >
+                          <option value="1:1">Square (1:1)</option>
+                          <option value="16:9">Landscape (16:9)</option>
+                          <option value="9:16">Portrait (9:16)</option>
+                          <option value="4:3">Landscape (4:3)</option>
+                          <option value="3:4">Portrait (3:4)</option>
+                        </select>
+                      </div>
+                      
+                      <div>
+                        <label className="block text-sm font-medium mb-1 flex items-center gap-1">
+                          Person Generation
+                          {isParamLocked(getModelById(configModelId), 'personGeneration') && (
+                            <Lock size={14} className="text-gray-400" />
+                          )}
+                        </label>
+                        <select
+                          value={getModelById(configModelId)?.parameters.personGeneration || 'ALLOW_ADULT'}
+                          onChange={e => updateModelParameter(configModelId, 'personGeneration', e.target.value)}
+                          disabled={isParamLocked(getModelById(configModelId), 'personGeneration')}
+                          className={cn(
+                            "w-full p-2 pr-8 border border-gray-300 dark:border-gray-700 rounded-md bg-transparent focus:outline-none focus:border-black dark:focus:border-white",
+                            isParamLocked(getModelById(configModelId), 'personGeneration') && "bg-gray-100 dark:bg-gray-800 cursor-not-allowed"
+                          )}
+                        >
+                          <option value="ALLOW_ADULT">Allow Adults</option>
+                          <option value="DONT_ALLOW">Don't Allow People</option>
+                        </select>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          Note: Imagen currently supports English-only prompts.
+                        </p>
+                      </div>
+                    </>
+                  )}
+                  
+                  {/* Gemini 2.0 Parameters */}
+                  {getModelById(configModelId)?.parameters.model === 'gemini-2.0-flash-exp-image-generation' && (
+                    <>
+                      <div>
+                        <label className="block text-sm font-medium mb-1 flex items-center gap-1">
+                          Response Modalities
+                          <Lock size={14} className="text-gray-400" />
+                        </label>
+                        <div className="bg-gray-100 dark:bg-gray-800 p-2 rounded-md text-sm">
+                          <code>["TEXT", "IMAGE"]</code>
+                        </div>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 mt-1">
+                          This parameter is required for Gemini image generation and cannot be modified.
+                        </p>
+                      </div>
+                      <p className="text-sm text-gray-700 dark:text-gray-300 mt-2">
+                        Gemini will generate both text and images in response to your prompts.
+                        The image will be displayed in the grid, and any text output will be visible when you click to enlarge the image.
+                      </p>
+                    </>
+                  )}
                 </>
-              )}
-              
-              {/* Stability AI and other models with temperature */}
-              {!getModelById(configModelId)?.apiEndpoint.includes('openai.com') && 
-                getModelById(configModelId)?.parameters.temperature !== undefined && (
-                <div>
-                  <label className="block text-sm font-medium mb-1 flex items-center gap-1">
-                    Temperature
-                    {isParamLocked(getModelById(configModelId), 'temperature') && (
-                      <Lock size={14} className="text-gray-400" />
-                    )}
-                  </label>
-                  <div className="flex items-center gap-3">
-                    <input
-                      type="range"
-                      min="0"
-                      max="1"
-                      step="0.1"
-                      value={getModelById(configModelId)?.parameters.temperature || 0.7}
-                      onChange={e => updateModelParameter(
-                        configModelId, 
-                        'temperature', 
-                        parseFloat(e.target.value)
-                      )}
-                      disabled={isParamLocked(getModelById(configModelId), 'temperature')}
-                      className="flex-1"
-                    />
-                    <span className="text-sm w-12 text-right">
-                      {getModelById(configModelId)?.parameters.temperature?.toFixed(1)}
-                    </span>
-                  </div>
-                </div>
               )}
             </div>
             <div className="border-t border-gray-200 dark:border-gray-800 p-4 flex justify-end sticky bottom-0 bg-white dark:bg-gray-900">

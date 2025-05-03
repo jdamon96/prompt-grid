@@ -135,24 +135,35 @@ export async function POST(req: NextRequest) {
         config: {
           responseModalities: ["TEXT", "IMAGE"],
           ...parameters.config
-        }
+        },
+        model: parameters.model || "gemini-2.0-flash-exp-image-generation"
       };
-    } else if (apiEndpoint.includes('generativelanguage.googleapis.com') && apiEndpoint.includes('generateImages')) {
-      // Google Imagen 3 API
+    } else if (apiEndpoint.includes('generativelanguage.googleapis.com') && apiEndpoint.includes('predict') && parameters.model?.includes('imagen')) {
+      // Google Imagen 3 API - using correct predict endpoint format
       headers = {
         'Content-Type': 'application/json',
         'x-goog-api-key': apiKey
       };
       
+      // The correct Imagen 3 API format based on docs
       requestBody = {
-        prompt,
-        config: {
-          numberOfImages: parameters.numberOfImages || 1,
+        instances: [
+          {
+            prompt: prompt
+          }
+        ],
+        parameters: {
+          sampleCount: parameters.numberOfImages || 1,
           aspectRatio: parameters.aspectRatio || "1:1",
-          personGeneration: parameters.personGeneration || "ALLOW_ADULT",
-          ...parameters.config
+          personGeneration: parameters.personGeneration || "ALLOW_ADULT"
         }
       };
+      
+      // Log the request body for debugging (without API key)
+      console.log(`Imagen 3 request:`, JSON.stringify({
+        ...requestBody,
+        prompt: { text: prompt.substring(0, 20) + '...' } // Truncate for privacy
+      }));
     } else {
       // Default generic format
       requestBody = {
@@ -162,18 +173,37 @@ export async function POST(req: NextRequest) {
     }
     
     // Forward the request to the AI service
+    console.log(`Sending request to: ${apiEndpoint}`);
+    
     const response = await fetch(apiEndpoint, {
       method: 'POST',
       headers,
       body: JSON.stringify(requestBody)
     });
     
-    // Parse the response
-    const data = await response.json();
+    // Log the raw response before parsing
+    const responseText = await response.text();
+    console.log(`Raw API response (first 500 chars): ${responseText.substring(0, 500)}`);
+    
+    // Parse the response as JSON
+    let data;
+    try {
+      data = JSON.parse(responseText);
+    } catch (parseError: any) {
+      console.error('Failed to parse JSON response:', parseError);
+      console.error('Response status:', response.status, response.statusText);
+      console.error('Response headers:', Object.fromEntries([...response.headers.entries()]));
+      console.error('Raw response body:', responseText);
+      
+      return NextResponse.json(
+        { error: `API returned invalid JSON: ${parseError.message}. Raw response: ${responseText.substring(0, 100)}...` },
+        { status: 500 }
+      );
+    }
     
     // Check for API-specific error responses
     if (!response.ok) {
-      console.error('API error:', data);
+      console.error('API error - Status:', response.status, 'Response:', JSON.stringify(data));
       
       // Extract more detailed error information based on API provider
       let errorMessage = 'Failed to generate image';
@@ -185,7 +215,21 @@ export async function POST(req: NextRequest) {
       } else if (apiEndpoint.includes('stability.ai')) {
         errorMessage = data.message || 'Stability AI error';
       } else if (apiEndpoint.includes('generativelanguage.googleapis.com')) {
-        errorMessage = data.error?.message || 'Google API error';
+        // Google APIs have different error formats
+        const originalMessage = data.error?.message || 
+                              data.error?.details || 
+                              data.error?.status ||
+                              (typeof data.error === 'string' ? data.error : 'Google API error');
+        
+        // Add helpful link for the billing required error
+        if (originalMessage.includes("Imagen API is only accessible to billed users")) {
+          errorMessage = `${originalMessage} <a href="https://console.cloud.google.com/billing/linkedaccount" target="_blank" class="text-blue-500 underline">Setup Gemini billing</a>`;
+        } else {
+          errorMessage = originalMessage;
+        }
+                      
+        // Log the specific error structure for debugging
+        console.error('Google API error structure:', JSON.stringify(data.error || data));
       }
       
       return NextResponse.json(
@@ -238,12 +282,59 @@ export async function POST(req: NextRequest) {
           break;
         }
       }
-    } else if (apiEndpoint.includes('generativelanguage.googleapis.com') && apiEndpoint.includes('generateImages')) {
-      // Google Imagen 3 response format
-      const generatedImages = data.generatedImages || [];
-      if (generatedImages.length > 0) {
-        const firstImage = generatedImages[0];
-        formattedResponse.imageUrl = `data:image/png;base64,${firstImage.image.imageBytes}`;
+      
+      // If no image found in the response
+      if (!formattedResponse.imageUrl) {
+        console.error('No image found in Gemini response:', JSON.stringify(data).substring(0, 200));
+        return NextResponse.json(
+          { error: 'No image was generated by Gemini' },
+          { status: 400 }
+        );
+      }
+    } else if (apiEndpoint.includes('generativelanguage.googleapis.com') && apiEndpoint.includes('predict') && parameters.model?.includes('imagen')) {
+      // Google Imagen 3 response format - log the full response for debugging
+      console.log('Imagen 3 complete response data:', JSON.stringify(data));
+      
+      // Format from official docs
+      if (data.predictions && data.predictions.length > 0) {
+        // Check for different possible keys for the base64 image data
+        const image = data.predictions[0]?.bytesBase64 || 
+                     data.predictions[0]?.bytesBase64Encoded || 
+                     data.predictions[0]?.imageBytes;
+                     
+        if (image) {
+          formattedResponse.imageUrl = `data:image/png;base64,${image}`;
+          console.log("Successfully extracted image from Imagen response");
+        } else {
+          console.error('Imagen response has predictions but no image data. Available keys:', 
+            Object.keys(data.predictions[0]).join(', '),
+            'Structure:', JSON.stringify(data.predictions[0])
+          );
+          return NextResponse.json(
+            { error: 'Imagen response has predictions but no image data was found.' },
+            { status: 400 }
+          );
+        }
+      } 
+      // Try alternative formats (API might change)
+      else if (data.images && data.images.length > 0) {
+        const image = data.images[0]?.bytesBase64 || 
+                     data.images[0]?.bytesBase64Encoded || 
+                     data.images[0]?.data;
+        if (image) {
+          formattedResponse.imageUrl = `data:image/png;base64,${image}`;
+          console.log("Successfully extracted image from alternative format");
+        }
+      }
+      else {
+        console.error('No valid predictions found in Imagen response. Response structure:', 
+          Object.keys(data).join(', '), 
+          'Full JSON:', JSON.stringify(data)
+        );
+        return NextResponse.json(
+          { error: 'No valid image was generated by Imagen. API response format unexpected.' },
+          { status: 400 }
+        );
       }
     } else {
       // Default - pass through the image URL field
