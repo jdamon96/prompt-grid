@@ -94,13 +94,6 @@ The application comes with built-in support for multiple image generation APIs:
   - Multiple images per request (up to 4)
 - [API Documentation](https://ai.google.dev/api/gemini-api/rest/v1/models/generateImages)
 
-### Stability AI
-- **API Endpoint**: `https://api.stability.ai/v1/generation`
-- **Features**:
-  - Multiple engine options
-  - Fine-grained control over image generation
-- [API Documentation](https://platform.stability.ai/docs/api-reference)
-
 ## Adding a Custom Model
 
 You can add custom image generation models by selecting "Custom model" from the add model menu. Specify:
