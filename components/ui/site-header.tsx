@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from "react";
 import { Separator } from "@/components/ui/separator";
 import { SidebarTrigger } from "@/components/ui/sidebar";
 import { Github, Info, MessageSquare } from "lucide-react";

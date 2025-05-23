@@ -1,23 +1,21 @@
-import Link from "next/link";
-
 export default function ApiKeysInfoPage() {
   return (
     <div className="max-w-2xl mx-auto py-12 px-4">
       <h1 className="text-2xl font-bold mb-4">How Prompt Grid Handles Your API Keys</h1>
       <p className="mb-4 text-gray-700 dark:text-gray-300">
-        Prompt Grid is designed with security and privacy in mind. Here's exactly how your API keys are handled when you use the app:
+        Prompt Grid is designed with security and privacy in mind. Here&apos;s exactly how your API keys are handled when you use the app:
       </p>
 
       <h2 className="text-xl font-semibold mt-8 mb-2">1. API Keys Stay in Your Browser</h2>
       <ul className="list-disc ml-6 mb-4 text-gray-700 dark:text-gray-300">
         <li>Your API keys are <b>never stored on our server</b> or in any database.</li>
-        <li>They are only kept in your browser's memory for the duration of your session.</li>
+        <li>They are only kept in your browser&apos;s memory for the duration of your session.</li>
         <li>When you generate an image, your API key is sent <b>only for that request</b> via a secure local API route.</li>
       </ul>
 
       <h2 className="text-xl font-semibold mt-8 mb-2">2. Frontend: Sending Your API Key</h2>
       <p className="mb-2 text-gray-700 dark:text-gray-300">
-        When you click "Generate", the API key is sent to the backend <b>only for the current request</b>. It is never persisted or logged. See the relevant code:
+        When you click &quot;Generate&quot;, the API key is sent to the backend <b>only for the current request</b>. It is never persisted or logged. See the relevant code:
       </p>
       <pre className="bg-gray-100 dark:bg-gray-800 rounded p-3 text-xs overflow-x-auto mb-2">
 {`body: JSON.stringify({

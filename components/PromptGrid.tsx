@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Plus, Settings, X, Trash2, AlertCircle, Info, ZoomIn, Download, Lock, MessageSquare, Play } from "lucide-react";
+import { Plus, Settings, X, Trash2, Info, ZoomIn, Download, Lock, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
 
@@ -508,17 +508,6 @@ export default function PromptGrid() {
     
     // Restore body scroll when popup is closed
     document.body.style.overflow = 'auto';
-  };
-  
-  // Function to open the feedback modal
-  const openFeedbackModal = () => {
-    setFeedbackModal({
-      ...feedbackModal,
-      isOpen: true
-    });
-    
-    // Prevent body scroll when modal is open
-    document.body.style.overflow = 'hidden';
   };
   
   // Function to close the feedback modal
