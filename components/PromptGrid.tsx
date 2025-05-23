@@ -2,12 +2,9 @@
 
 import { useState, useEffect } from "react";
 import Image from "next/image";
-import { Plus, Settings, X, Trash2, AlertCircle, Info, ZoomIn, Download, Lock, Github, MessageSquare } from "lucide-react";
+import { Plus, Settings, X, Trash2, AlertCircle, Info, ZoomIn, Download, Lock, MessageSquare, Play } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useRouter, useSearchParams } from "next/navigation";
-
-// Define constants at the top, after imports but before component definition
-const GITHUB_REPO_URL = "https://github.com/jdamon96/prompt-grid";
 
 // Define types for our grid data
 type Model = {
@@ -690,69 +687,29 @@ export default function PromptGrid() {
 
   return (
     <div className="flex flex-col gap-6 w-full max-w-[1200px] mx-auto">
-      <div className="flex justify-between gap-2">
-        <div className="flex flex-col gap-2">
-          <h1 className="text-2xl font-bold">Prompt Grid</h1>
-          <p className="text-gray-600 dark:text-gray-400 flex items-center gap-2">
-            Compare image generation models with different prompts
-            <a 
-              href={GITHUB_REPO_URL} 
-              target="_blank" 
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs font-medium px-2 py-0.5 rounded-full bg-black/10 dark:bg-white/10 hover:bg-black/20 dark:hover:bg-white/20 transition-colors"
-            >
-              <Github size={12} />
-              <span>Open Source</span>
-            </a>
-          </p>
-        </div>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={openFeedbackModal}
-            className="inline-flex items-center gap-1 px-3 py-2 rounded-full bg-blue-50 text-blue-700 hover:bg-blue-100 dark:bg-blue-900/30 dark:text-blue-300 dark:hover:bg-blue-800/50 transition-colors"
-          >
-            <MessageSquare size={16} />
-            <span className="text-sm font-medium">Feedback</span>
-          </button>
-          <button
-            onClick={generateImages}
-            disabled={isGenerating}
-            className={cn(
-              "px-6 py-3 rounded-full font-medium",
-              "bg-black text-white hover:bg-gray-800",
-              "dark:bg-white dark:text-black dark:hover:bg-gray-200",
-              "transition-colors",
-              "disabled:opacity-50 disabled:cursor-not-allowed"
-            )}
-          >
-            {isGenerating ? "Generating..." : "Generate Images"}
-          </button>
-        </div>
+      <div className="w-full flex justify-between items-center">
+      <div className="flex flex-col gap-2">
+        <p className="text-gray-600 dark:text-gray-400 flex items-center gap-2">
+          Compare image generation models with different prompts
+        </p>
+      </div>
+      <div className="flex items-center gap-2">
+        <button
+          onClick={generateImages}
+          disabled={isGenerating}
+          className={cn(
+            "hover:cursor-pointer px-3 py-2 rounded-full font-medium flex items-center gap-2",
+            "bg-black text-sm text-white hover:bg-gray-800",
+            "dark:bg-white dark:text-black dark:hover:bg-gray-200",
+            "transition-colors",
+            "disabled:opacity-50 disabled:cursor-not-allowed"
+          )}
+        >
+          {isGenerating ? "Generating..." : <><Play size={16} /> Generate Images</>}
+        </button>
+      </div>
       </div>
       
-      <div className="bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800 rounded-lg p-4 mb-4">
-        <div className="flex items-start gap-3">
-          <AlertCircle className="text-yellow-500 mt-0.5" size={18} />
-          <div>
-            <h3 className="font-medium text-yellow-800 dark:text-yellow-200">Secure API Key Handling</h3>
-            <p className="text-sm text-yellow-700 dark:text-yellow-300 mt-1">
-              Your API keys are sent securely to a local API route and are never stored on our servers.
-              They remain in your browser only for the duration of your session and are only used for 
-              the specific image generation requests. You can verify this by checking the 
-              <a 
-                href={GITHUB_REPO_URL} 
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline hover:text-yellow-800 dark:hover:text-yellow-100 ml-1"
-              >
-                open source code
-              </a>.
-            </p>
-          </div>
-        </div>
-      </div>
-      
-
       <div className="relative overflow-x-auto border border-gray-200 dark:border-gray-800 rounded-lg">
         <table className="w-full text-sm">
           <thead>

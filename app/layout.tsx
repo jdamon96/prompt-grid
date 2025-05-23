@@ -4,6 +4,7 @@ import "./globals.css";
 import { SidebarProvider, SidebarInset } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/ui/app-sidebar";
 import { SiteHeader } from "@/components/ui/site-header";
+import ClientFeedbackModal from "@/components/ClientFeedbackModal";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -35,6 +36,7 @@ export default function RootLayout({
             <div className="flex flex-1 flex-col">
               {children}
             </div>
+            <ClientFeedbackModal />
           </SidebarInset>
         </SidebarProvider>
       </body>

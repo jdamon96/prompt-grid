@@ -3,7 +3,7 @@ import { Suspense } from "react";
 
 export default function PlaygroundPage() {
   return (
-    <div className="min-h-screen p-8 sm:p-12">
+    <div className="min-h-screen px-8 sm:px-12 py-4">
       <Suspense>
         <PromptGrid />
       </Suspense>
