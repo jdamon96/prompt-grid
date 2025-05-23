@@ -1,9 +1,10 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Plus, Settings, X, Trash2, AlertCircle, Info, ZoomIn, Download, Lock, Github, MessageSquare } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useRouter, useSearchParams } from "next/navigation";
 
 // Define constants at the top, after imports but before component definition
 const GITHUB_REPO_URL = "https://github.com/jdamon96/prompt-grid";
@@ -149,6 +150,9 @@ const MODEL_PRESETS = {
 };
 
 export default function PromptGrid() {
+  const router = useRouter();
+  const searchParams = useSearchParams();
+
   // Initial state with 2 models and 2 prompts
   const [models, setModels] = useState<Model[]>([
     { 
@@ -161,10 +165,50 @@ export default function PromptGrid() {
     },
   ]);
 
-  const [prompts, setPrompts] = useState<Prompt[]>([
-    { id: "prompt1", text: "A cat sitting on a chair" },
-    { id: "prompt2", text: "A dog running in the park" },
-  ]);
+  // Helper to parse prompts from URL
+  function parsePromptsFromURL(): Prompt[] {
+    const param = searchParams?.get("prompts");
+    if (!param) return [
+      { id: "prompt1", text: "A cat sitting on a chair" },
+      { id: "prompt2", text: "A dog running in the park" },
+    ];
+    const decoded = decodeURIComponent(param);
+    const split = decoded.split("|").filter(Boolean);
+    return split.length > 0
+      ? split.map((text, i) => ({ id: `prompt${i + 1}`, text }))
+      : [
+          { id: "prompt1", text: "A cat sitting on a chair" },
+          { id: "prompt2", text: "A dog running in the park" },
+        ];
+  }
+
+  // State for prompts, initialized from URL
+  const [prompts, setPrompts] = useState<Prompt[]>(parsePromptsFromURL());
+
+  // Sync prompts to URL when they change
+  useEffect(() => {
+    const promptTexts = prompts.map((p) => p.text.trim()).filter(Boolean);
+    const current = searchParams?.get("prompts") || "";
+    if (promptTexts.length === 0) return;
+    if (decodeURIComponent(current) !== promptTexts.join("|")) {
+      const params = new URLSearchParams(Array.from(searchParams?.entries() || []));
+      params.set("prompts", promptTexts.join("|"));
+      router.replace(`?${params.toString()}`);
+    }
+  }, [prompts, router, searchParams]);
+
+  // Sync prompts state if URL changes (e.g., user pastes a new URL)
+  useEffect(() => {
+    const urlPrompts = parsePromptsFromURL();
+    // Only update if different
+    if (
+      urlPrompts.length !== prompts.length ||
+      urlPrompts.some((p, i) => p.text !== prompts[i]?.text)
+    ) {
+      setPrompts(urlPrompts);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams?.get("prompts")]);
 
   const [results, setResults] = useState<GridResult[]>([]);
   const [isGenerating, setIsGenerating] = useState(false);
